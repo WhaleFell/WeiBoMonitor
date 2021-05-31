@@ -2,7 +2,7 @@
 '''
 Author: whalefall
 Date: 2021-02-27 13:57:42
-LastEditTime: 2021-03-06 19:19:07
+LastEditTime: 2021-05-31 16:04:28
 Description: 微博简易监控程序
 '''
 import configparser
@@ -24,6 +24,7 @@ from fake_useragent import UserAgent
 from lxml import etree
 
 from function import log
+from function import yiqin
 
 urllib3.disable_warnings()
 
@@ -419,19 +420,33 @@ class OPQBot():
         #     print(resp.json())
         '''
 
+# 推送部分
 
-if __name__ == "__main__":
-    # uid = "6355968578"
-    try:
-        weiboList, updateTime, CoolPushToken = getConfig()
-    except Exception as e:
-        log.error("请检查配置文件config.ini")
 
+def push(content):
     # 实例化酷推
     cp = CoolPush(CoolPushToken)
 
     # opqbot
     bot = OPQBot("http://192.168.101.4:8888", 2593923636)
+    try:
+        cp.pushGoup("[%s]%s\n%s" % (name, times, content))
+        cp.pushSend("[%s]%s\n%s" % (name, times, content))
+        bot.sendGoup("1028871825", "txt",
+                     "[%s]%s\n%s" % (name, times, content))
+        bot.sendGoup("1077021541", "txt",
+                     "[%s]%s\n%s" % (name, times, content))
+    except:
+        pass
+
+
+if __name__ == "__main__":
+    # uid = "6355968578"
+    try:
+        global CoolPushToken
+        weiboList, updateTime, CoolPushToken = getConfig()
+    except Exception as e:
+        log.error("请检查配置文件config.ini")
 
     # bot.getGroupList()
 
@@ -445,14 +460,11 @@ if __name__ == "__main__":
 
             try:
                 times, name, uid, content = update(uid)
+                content_raw = "[%s]%s\n%s" % (name, times, content)
                 # 推送部分
                 print("PUSH %s,%s(%s),%s" % (times, name, uid, content))
-                cp.pushGoup("[%s]%s\n%s" % (name, times, content))
-                cp.pushSend("[%s]%s\n%s" % (name, times, content))
-                bot.sendGoup("1028871825", "txt",
-                             "[%s]%s\n%s" % (name, times, content))
-                bot.sendGoup("1077021541", "txt",
-                             "[%s]%s\n%s" % (name, times, content))
+                push(content_raw)
+
             except:
 
                 pass
