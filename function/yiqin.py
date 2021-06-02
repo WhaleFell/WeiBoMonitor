@@ -1,11 +1,13 @@
 '''
 Author: whalefall
 Date: 2021-05-31 15:37:14
-LastEditTime: 2021-05-31 16:03:58
+LastEditTime: 2021-06-02 18:53:46
 Description: http://wjj.foshan.gov.cn/zwgk/zwdt/yqxx/ 广东疫情情况
 '''
 import requests
 from lxml import etree
+import re
+import datetime
 
 
 class Yq(object):
@@ -19,7 +21,8 @@ class Yq(object):
         self.se = requests.session()
 
     def get_content_url(self):
-        resp = self.se.get(self.url_index, headers=self.header).text
+        resp = self.se.get(
+            self.url_index, headers=self.header, verify=True).text
         html = etree.HTML(resp)
         # /html/body/div[4]/div[2]/div[1]/ul/li[1]/a
         try:
@@ -40,23 +43,30 @@ class Yq(object):
         else:
             pass
 
-        resp = self.se.get(url, headers=self.header).text
-        print(resp)
+        resp = self.se.get(url, headers=self.header, verify=True).text
+        # print(resp)
         html = etree.HTML(resp)
-        # /html/body/div[3]/div[2]/h3
+
+        # 标题
         title = html.xpath(
             "/html/body/div[3]/div[2]/h3/text()")[0]
 
-        # print(title)
-        # /html/body/div[3]/div[2]/div[2]
+        # 发布日期
+        times_raw = html.xpath("/html/body/div[3]/div[2]/div[1]/text()")[0]
+        times = re.findall(r"发布日期：(\d+-\d+-\d+ \d+:\d+:\d+)", times_raw)[0]
+        timestemp = datetime.datetime.strptime(
+            times, '%Y-%m-%d %H:%M:%S')
+        timestamp = int(timestemp.timestamp())
 
+        # 内容
         content = html.xpath(
             "/html/body/div[3]/div[2]/div[2]//text()")
-        
-        content=''.join(content).replace("\n", "").replace(" ", "")
-        
-        # print(content)
-        return title,content
+        content = ''.join(content).replace(
+            "\n", "").replace(" ", "").replace("\u3000", "")
+
+        return timestamp, times, title, content
+
 
 if __name__ == "__main__":
-    Yq().index_content()
+
+    print(Yq().index_content())
