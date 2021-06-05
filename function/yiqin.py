@@ -12,6 +12,7 @@ import datetime
 
 class Yq(object):
 
+
     def __init__(self):
         self.url_index = "http://wjj.foshan.gov.cn/zwgk/zwdt/yqxx/"
         self.header = {
