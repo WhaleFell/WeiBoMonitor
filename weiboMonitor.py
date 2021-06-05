@@ -2,7 +2,7 @@
 '''
 Author: whalefall
 Date: 2021-02-27 13:57:42
-LastEditTime: 2021-05-31 16:04:28
+LastEditTime: 2021-06-05 17:39:32
 Description: 微博简易监控程序
 '''
 import configparser
@@ -15,6 +15,7 @@ import sqlite3
 import sys
 import time
 from ast import literal_eval
+import traceback
 from urllib.parse import urlencode
 from urllib.request import urlretrieve
 
@@ -29,6 +30,7 @@ from function import yiqin
 urllib3.disable_warnings()
 
 log = log.Logging()
+yq = yiqin.Yq()
 
 # 获取脚本所在目录万能方法
 path = os.path.split(os.path.realpath(__file__))[0]
@@ -245,6 +247,26 @@ def update(uid, status="0"):
         print("[Weibo]%s UID:%s(%s)无更新" %
               (datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), name, uid))
 
+
+def update_yiqin():
+    timestamp, times, title, content = yiqin.Yq().index_content()
+
+    res = writeSQL("yiqin", timestamp, times, title+":"+content)
+
+    if res == "1":
+        # 数据更新推送
+        print("[NewYiqin]%s发现新数据! %s" %
+              (title, content))
+        return (title+":"+content)
+    elif res == "0":
+        print("[NewYiqin]%s无更新" %
+              (times))
+        # return
+    else:
+        log.error("出现错误!")
+        # return
+
+
 # CoolPush
 
 
@@ -430,14 +452,16 @@ def push(content):
     # opqbot
     bot = OPQBot("http://192.168.101.4:8888", 2593923636)
     try:
-        cp.pushGoup("[%s]%s\n%s" % (name, times, content))
-        cp.pushSend("[%s]%s\n%s" % (name, times, content))
+        cp.pushGoup(content)
+        cp.pushSend(content)
         bot.sendGoup("1028871825", "txt",
-                     "[%s]%s\n%s" % (name, times, content))
+                     content)
         bot.sendGoup("1077021541", "txt",
-                     "[%s]%s\n%s" % (name, times, content))
+                     content)
     except:
-        pass
+        log.error("推送出现异常!")
+
+
 
 
 if __name__ == "__main__":
@@ -453,20 +477,27 @@ if __name__ == "__main__":
     # 初始化
     for uid in weiboList:
         update(uid, "1")
-        time.sleep(10)
+        time.sleep(2)
 
     while True:
         for uid in weiboList:
 
             try:
-                times, name, uid, content = update(uid)
-                content_raw = "[%s]%s\n%s" % (name, times, content)
-                # 推送部分
-                print("PUSH %s,%s(%s),%s" % (times, name, uid, content))
-                push(content_raw)
+                try:
+                    times, name, uid, content = update(uid)
+                    content_raw = "[%s]%s\n%s" % (name, times, content)
+                    # 推送部分
+                    print("PUSH %s,%s(%s),%s" % (times, name, uid, content))
+                except:
+                    pass
+                # 添加疫情信息推送
+                content_yiqin = update_yiqin()
+                if content_yiqin != None:
+                    log.info("推送疫情信息")
+                    push(content_yiqin)
 
             except:
 
-                pass
+                print("出现(main)错误:%s" % (traceback.format_exc()))
 
             time.sleep(updateTime)
