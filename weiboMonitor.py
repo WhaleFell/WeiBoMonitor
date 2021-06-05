@@ -36,6 +36,7 @@ yq = yiqin.Yq()
 path = os.path.split(os.path.realpath(__file__))[0]
 
 
+
 def getConfig():
     config = configparser.ConfigParser()
     path_py = os.path.split(os.path.realpath(sys.argv[0]))[0]
